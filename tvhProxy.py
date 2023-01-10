@@ -4,6 +4,9 @@ import time
 import os
 import requests
 from gevent.pywsgi import WSGIServer
+from requests.auth import HTTPBasicAuth
+
+
 from flask import Flask, Response, request, jsonify, abort, render_template
 
 app = Flask(__name__)
@@ -11,9 +14,9 @@ app = Flask(__name__)
 # URL format: <protocol>://<username>:<password>@<hostname>:<port>, example: https://test:1234@localhost:9981
 config = {
     'bindAddr': os.environ.get('TVH_BINDADDR') or '',
-    'tvhURL': os.environ.get('TVH_URL') or 'http://test:test@localhost:9981',
-    'tvhProxyURL': os.environ.get('TVH_PROXY_URL') or 'http://localhost',
-    'tunerCount': os.environ.get('TVH_TUNER_COUNT') or 6,  # number of tuners in tvh
+    'tvhURL': os.environ.get('TVH_URL') or 'http://admin:admin@bzzoiro.duckdns.org:9981',
+    'tvhProxyURL': os.environ.get('TVH_PROXY_URL') or 'http://bzzoiro.duckdns.orgs',
+    'tunerCount': os.environ.get('TVH_TUNER_COUNT') or 1,  # number of tuners in tvh
     'tvhWeight': os.environ.get('TVH_WEIGHT') or 300,  # subscription priority
     'chunkSize': os.environ.get('TVH_CHUNK_SIZE') or 1024*1024,  # usually you don't need to edit this
     'streamProfile': os.environ.get('TVH_PROFILE') or 'pass'  # specifiy a stream profile that you want to use for adhoc transcoding in tvh, e.g. mp4
@@ -31,6 +34,11 @@ discoverData = {
     'BaseURL': '%s' % config['tvhProxyURL'],
     'LineupURL': '%s/lineup.json' % config['tvhProxyURL']
 }
+
+
+def _debug(text):
+    if 1:
+        print('DEBUG: {}'.format(text))
 
 @app.route('/discover.json')
 def discover():
@@ -74,16 +82,20 @@ def device():
 
 
 def _get_channels():
-    url = '%s/api/channel/grid?start=0&limit=999999' % config['tvhURL']
 
-    try:
-        r = requests.get(url)
-        return r.json()['entries']
+    ts_server = 'http://192.168.1.156:9981'
+    ts_url = 'api/channel/grid?start=0&limit=999999'
+    ts_user = 'admin'
+    ts_pass = 'admin'
+    url = '%s/%s' % (ts_server,ts_url,)
+    from requests.auth import HTTPDigestAuth
+    r = requests.get(url, auth=HTTPDigestAuth(ts_user, ts_pass))
 
-    except Exception as e:
-        print('An error occured: ' + repr(e))
+    return r.json()['entries']
+
 
 
 if __name__ == '__main__':
+    print('----------------------------------------------------------------------------')
     http = WSGIServer((config['bindAddr'], 5004), app.wsgi_app)
     http.serve_forever()
