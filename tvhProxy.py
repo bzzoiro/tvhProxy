@@ -13,9 +13,13 @@ app = Flask(__name__)
 
 # URL format: <protocol>://<username>:<password>@<hostname>:<port>, example: https://test:1234@localhost:9981
 config = {
+    'username': 'admin',
+    'password': 'admin',
+    'port': 9981,
+    'domain': '192.168.1.156', #'bzzoiro.duckdns.org',
     'bindAddr': os.environ.get('TVH_BINDADDR') or '',
     'tvhURL': os.environ.get('TVH_URL') or 'http://admin:admin@bzzoiro.duckdns.org:9981',
-    'tvhProxyURL': os.environ.get('TVH_PROXY_URL') or 'http://bzzoiro.duckdns.orgs',
+    'tvhProxyURL': os.environ.get('TVH_PROXY_URL') or 'http://bzzoiro.duckdns.org',
     'tunerCount': os.environ.get('TVH_TUNER_COUNT') or 1,  # number of tuners in tvh
     'tvhWeight': os.environ.get('TVH_WEIGHT') or 300,  # subscription priority
     'chunkSize': os.environ.get('TVH_CHUNK_SIZE') or 1024*1024,  # usually you don't need to edit this
@@ -36,9 +40,8 @@ discoverData = {
 }
 
 
-def _debug(text):
-    if 1:
-        print('DEBUG: {}'.format(text))
+def compose_root_url():
+    return 'http://{}:{}@{}:{}'.format(config['username'], config['password'], config['domain'], config['port'])
 
 @app.route('/discover.json')
 def discover():
@@ -61,7 +64,8 @@ def lineup():
 
     for c in _get_channels():
         if c['enabled']:
-            url = '%s/stream/channel/%s?profile=%s&weight=%s' % (config['tvhURL'], c['uuid'], config['streamProfile'],int(config['tvhWeight']))
+
+            url = '{}/stream/channel/{}'.format(compose_root_url(), c['uuid'])
 
             lineup.append({'GuideNumber': str(c['number']),
                            'GuideName': c['name'],
@@ -83,13 +87,10 @@ def device():
 
 def _get_channels():
 
-    ts_server = 'http://192.168.1.156:9981'
     ts_url = 'api/channel/grid?start=0&limit=999999'
-    ts_user = 'admin'
-    ts_pass = 'admin'
-    url = '%s/%s' % (ts_server,ts_url,)
-    from requests.auth import HTTPDigestAuth
-    r = requests.get(url, auth=HTTPDigestAuth(ts_user, ts_pass))
+    url = '%s/%s' % (compose_root_url(),ts_url,)
+    print(url)
+    r = requests.get(url)
 
     return r.json()['entries']
 
