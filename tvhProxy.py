@@ -16,7 +16,9 @@ config = {
     'username': 'admin',
     'password': 'admin',
     'port': 9981,
-    'domain': '192.168.1.156', #'bzzoiro.duckdns.org',
+    'domain': 'bzzoiro.duckdns.org',
+    #'domain': '192.168.1.156', #'bzzoiro.duckdns.org',
+    'persistent_auth_code': 'Pln4KmwBo51FkZhmTdWmG1ai2mlw',
     'bindAddr': os.environ.get('TVH_BINDADDR') or '',
     'tvhURL': os.environ.get('TVH_URL') or 'http://admin:admin@bzzoiro.duckdns.org:9981',
     'tvhProxyURL': os.environ.get('TVH_PROXY_URL') or 'http://bzzoiro.duckdns.org',
@@ -65,8 +67,7 @@ def lineup():
     for c in _get_channels():
         if c['enabled']:
 
-            url = '{}/stream/channel/{}'.format(compose_root_url(), c['uuid'])
-
+            url = '{}/stream/channel/{}?ticket={}&profile=htsp'.format(compose_root_url(), c['uuid'], config['persistent_auth_code'])
             lineup.append({'GuideNumber': str(c['number']),
                            'GuideName': c['name'],
                            'URL': url
